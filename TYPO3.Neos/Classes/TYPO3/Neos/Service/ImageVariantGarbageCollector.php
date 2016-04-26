@@ -15,6 +15,7 @@ use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Persistence\PersistenceManagerInterface;
 use TYPO3\Media\Domain\Model\ImageVariant;
 use TYPO3\Media\Domain\Repository\AssetRepository;
+use TYPO3\Media\Domain\Service\AssetServiceInterface;
 use TYPO3\TYPO3CR\Domain\Model\NodeInterface;
 use TYPO3\TYPO3CR\Domain\Repository\NodeDataRepository;
 
@@ -33,9 +34,9 @@ class ImageVariantGarbageCollector
 
     /**
      * @Flow\Inject
-     * @var AssetRepository
+     * @var AssetServiceInterface
      */
-    protected $assetRepository;
+    protected $assetService;
 
     /**
      * @Flow\Inject
@@ -65,13 +66,13 @@ class ImageVariantGarbageCollector
 
         // This case shouldn't happen as the query will usually find at least the node that triggered this call, still if there is no relation we can remove the ImageVariant.
         if ($results === []) {
-            $this->assetRepository->remove($oldValue);
+            $this->assetService->remove($oldValue);
             return;
         }
 
         // If the result contains exactly the node that got a new ImageVariant assigned then we are safe to remove the asset here.
         if ($results === [$node->getNodeData()]) {
-            $this->assetRepository->remove($oldValue);
+            $this->assetService->remove($oldValue);
         }
     }
 }

@@ -20,6 +20,7 @@ use TYPO3\Flow\Mvc\Controller\ActionController;
 use TYPO3\Media\Domain\Model\Image;
 use TYPO3\Media\Domain\Model\ImageInterface;
 use TYPO3\Media\Domain\Model\ImageVariant;
+use TYPO3\Media\Domain\Service\AssetServiceInterface;
 use TYPO3\Media\Domain\Service\ThumbnailService;
 use TYPO3\Media\TypeConverter\AssetInterfaceConverter;
 use TYPO3\Media\Domain\Repository\AssetCollectionRepository;
@@ -43,15 +44,9 @@ class ContentController extends ActionController
 
     /**
      * @Flow\Inject
-     * @var \TYPO3\Media\Domain\Repository\AssetRepository
+     * @var AssetServiceInterface
      */
-    protected $assetRepository;
-
-    /**
-     * @Flow\Inject
-     * @var \TYPO3\Media\Domain\Repository\ImageRepository
-     */
-    protected $imageRepository;
+    protected $assetService;
 
     /**
      * @Flow\Inject
@@ -140,13 +135,13 @@ class ContentController extends ActionController
             case 'Asset':
                 $result = $this->getAssetProperties($asset);
                 if ($this->persistenceManager->isNewObject($asset)) {
-                    $this->assetRepository->add($asset);
+                    $this->assetService->add($asset);
                 }
                 break;
             case 'Image':
                 $result = $this->getImageInterfacePreviewData($asset);
                 if ($this->persistenceManager->isNewObject($asset)) {
-                    $this->imageRepository->add($asset);
+                    $this->assetService->add($asset);
                 }
                 break;
             default:
@@ -178,7 +173,7 @@ class ContentController extends ActionController
     public function createImageVariantAction(ImageVariant $asset)
     {
         if ($this->persistenceManager->isNewObject($asset)) {
-            $this->assetRepository->add($asset);
+            $this->assetService->add($asset);
         }
 
         $propertyMappingConfiguration = new PropertyMappingConfiguration();

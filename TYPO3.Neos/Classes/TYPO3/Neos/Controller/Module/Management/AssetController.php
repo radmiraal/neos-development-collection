@@ -20,6 +20,7 @@ use TYPO3\Flow\Security\Context;
 use TYPO3\Flow\Utility\TypeHandling;
 use TYPO3\Media\Domain\Model\Asset;
 use TYPO3\Media\Domain\Model\AssetCollection;
+use TYPO3\Media\Exception\AssetServiceException;
 use TYPO3\Neos\Controller\CreateContentContextTrait;
 use TYPO3\Neos\Domain\Repository\DomainRepository;
 use TYPO3\Neos\Domain\Repository\SiteRepository;
@@ -135,15 +136,14 @@ class AssetController extends \TYPO3\Media\Controller\AssetController
      */
     public function deleteAction(\TYPO3\Media\Domain\Model\Asset $asset)
     {
-        $relatedNodes = $this->getRelatedNodes($asset);
-        if (count($relatedNodes) > 0) {
+        try {
+            // FIXME: Resources are not deleted, because we cannot be sure that the resource isn't used anywhere else.
+            $this->assetService->remove($asset);
+            $this->addFlashMessage(sprintf('Asset "%s" has been deleted.', $asset->getLabel()), null, null, [], 1412375050);
+        } catch (AssetServiceException $exception) {
             $this->addFlashMessage('Asset could not be deleted, because there are still Nodes using it.', '', Message::SEVERITY_WARNING, [], 1412422767);
-            $this->redirect('index');
         }
 
-        // FIXME: Resources are not deleted, because we cannot be sure that the resource isn't used anywhere else.
-        $this->assetRepository->remove($asset);
-        $this->addFlashMessage(sprintf('Asset "%s" has been deleted.', $asset->getLabel()), null, null, [], 1412375050);
         $this->redirect('index');
     }
 

@@ -14,14 +14,21 @@ namespace TYPO3\Media\Domain\Service;
 use TYPO3\Flow\Annotations as Flow;
 use TYPO3\Flow\Mvc\ActionRequest;
 use TYPO3\Flow\Mvc\Routing\UriBuilder;
+use TYPO3\Flow\Object\ObjectManagerInterface;
+use TYPO3\Flow\Persistence\RepositoryInterface;
 use TYPO3\Flow\Resource\ResourceManager;
 use TYPO3\Media\Domain\Model\AssetInterface;
 use TYPO3\Media\Domain\Model\ImageInterface;
 use TYPO3\Media\Domain\Model\Thumbnail;
 use TYPO3\Media\Domain\Model\ThumbnailConfiguration;
+use TYPO3\Media\Domain\Repository\AssetRepository;
 use TYPO3\Media\Exception\AssetServiceException;
 
-class AssetService
+/**
+ * An asset service that handles for example commands on assets, retrieves information
+ * about usage of assets and rendering thumbnails.
+ */
+class AssetService implements AssetServiceInterface
 {
     /**
      * @Flow\Inject
@@ -40,6 +47,62 @@ class AssetService
      * @var UriBuilder
      */
     protected $uriBuilder;
+
+    /**
+     * @Flow\Inject
+     * @var ObjectManagerInterface
+     */
+    protected $objectManager;
+
+    /**
+     * Returns the repository for an asset
+     *
+     * @param AssetInterface $asset
+     * @return RepositoryInterface
+     */
+    protected function getRepository(AssetInterface $asset)
+    {
+        $assetRepositoryClassName = str_replace('\\Model\\', '\\Repository\\', get_class($asset)) . 'Repository';
+
+        if (class_exists($assetRepositoryClassName)) {
+            return $this->objectManager->get($assetRepositoryClassName);
+        }
+
+        return $this->objectManager->get(AssetRepository::class);
+    }
+
+    /**
+     * Add an asset object.
+     *
+     * @param AssetInterface $asset
+     * @return void
+     */
+    public function add(AssetInterface $asset)
+    {
+        $this->getRepository($asset)->add($asset);
+    }
+
+    /**
+     * Update an asset object.
+     *
+     * @param AssetInterface $asset
+     * @return void
+     */
+    public function update(AssetInterface $asset)
+    {
+        $this->getRepository($asset)->update($asset);
+    }
+
+    /**
+     * Deletes an asset.
+     *
+     * @param AssetInterface $asset
+     * @return void
+     */
+    public function remove(AssetInterface $asset)
+    {
+        $this->getRepository($asset)->remove($asset);
+    }
 
     /**
      * Calculates the dimensions of the thumbnail to be generated and returns the thumbnail URI.

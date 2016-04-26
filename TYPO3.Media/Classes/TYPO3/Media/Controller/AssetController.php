@@ -14,6 +14,7 @@ namespace TYPO3\Media\Controller;
 use Doctrine\Common\Persistence\Proxy as DoctrineProxy;
 use Doctrine\ORM\EntityNotFoundException;
 use TYPO3\Flow\Annotations as Flow;
+use TYPO3\Flow\Error\Message;
 use TYPO3\Flow\Property\TypeConverter\PersistentObjectConverter;
 use TYPO3\Flow\Utility\Files;
 use TYPO3\Media\Domain\Repository\AudioRepository;
@@ -24,6 +25,8 @@ use TYPO3\Media\Domain\Model\Asset;
 use TYPO3\Media\Domain\Model\AssetCollection;
 use TYPO3\Media\Domain\Model\Tag;
 use TYPO3\Media\Domain\Repository\AssetCollectionRepository;
+use TYPO3\Media\Domain\Service\AssetServiceInterface;
+use TYPO3\Media\Exception\AssetServiceException;
 use TYPO3\Media\TypeConverter\AssetInterfaceConverter;
 
 /**
@@ -63,6 +66,12 @@ class AssetController extends \TYPO3\Flow\Mvc\Controller\ActionController
      * @var \TYPO3\Media\Domain\Session\BrowserState
      */
     protected $browserState;
+
+    /**
+     * @Flow\Inject
+     * @var AssetServiceInterface
+     */
+    protected $assetService;
 
     /**
      * @var array
@@ -275,7 +284,7 @@ class AssetController extends \TYPO3\Flow\Mvc\Controller\ActionController
      */
     public function updateAction(Asset $asset)
     {
-        $this->assetRepository->update($asset);
+        $this->assetService->update($asset);
         $this->addFlashMessage(sprintf('Asset "%s" has been updated.', htmlspecialchars($asset->getLabel())));
         $this->redirect('index');
     }
@@ -302,7 +311,7 @@ class AssetController extends \TYPO3\Flow\Mvc\Controller\ActionController
     public function createAction(Asset $asset)
     {
         if ($this->persistenceManager->isNewObject($asset)) {
-            $this->assetRepository->add($asset);
+            $this->assetService->add($asset);
         }
         $this->addFlashMessage(sprintf('Asset "%s" has been added.', htmlspecialchars($asset->getLabel())));
         $this->redirect('index', null, null, array(), 0, 201);
@@ -334,9 +343,9 @@ class AssetController extends \TYPO3\Flow\Mvc\Controller\ActionController
         }
 
         if ($this->persistenceManager->isNewObject($asset)) {
-            $this->assetRepository->add($asset);
+            $this->assetService->add($asset);
         } else {
-            $this->assetRepository->update($asset);
+            $this->assetService->update($asset);
         }
 
         if (($assetCollection = $this->browserState->get('activeAssetCollection')) !== null && $assetCollection->addAsset($asset)) {
@@ -361,7 +370,7 @@ class AssetController extends \TYPO3\Flow\Mvc\Controller\ActionController
     {
         $success = false;
         if ($asset->addTag($tag)) {
-            $this->assetRepository->update($asset);
+            $this->assetService->update($asset);
             $success = true;
         }
         $this->view->assign('value', $success);
@@ -392,8 +401,13 @@ class AssetController extends \TYPO3\Flow\Mvc\Controller\ActionController
      */
     public function deleteAction(Asset $asset)
     {
-        $this->assetRepository->remove($asset);
-        $this->addFlashMessage(sprintf('Asset "%s" has been deleted.', htmlspecialchars($asset->getLabel())));
+        try {
+            $this->assetService->remove($asset);
+            $this->addFlashMessage(sprintf('Asset "%s" has been deleted.', htmlspecialchars($asset->getLabel())));
+        } catch (AssetServiceException $exception) {
+            $this->addFlashMessage('Asset could not be deleted.', '', Message::SEVERITY_WARNING, [], 1462196565);
+        }
+
         $this->redirect('index');
     }
 
@@ -454,7 +468,7 @@ class AssetController extends \TYPO3\Flow\Mvc\Controller\ActionController
         $taggedAssets = $this->assetRepository->findByTag($tag);
         foreach ($taggedAssets as $asset) {
             $asset->removeTag($tag);
-            $this->assetRepository->update($asset);
+            $this->assetService->update($asset);
         }
         $this->tagRepository->remove($tag);
         $this->addFlashMessage(sprintf('Tag "%s" has been deleted.', htmlspecialchars($tag->getLabel())));

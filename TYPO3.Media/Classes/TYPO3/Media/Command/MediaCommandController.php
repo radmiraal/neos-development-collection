@@ -17,6 +17,7 @@ use TYPO3\Media\Domain\Model\Image;
 use TYPO3\Media\Domain\Repository\AssetRepository;
 use TYPO3\Media\Domain\Repository\ImageRepository;
 use TYPO3\Media\Domain\Repository\ThumbnailRepository;
+use TYPO3\Media\Domain\Service\AssetServiceInterface;
 use TYPO3\Media\Domain\Service\ThumbnailService;
 
 /**
@@ -46,6 +47,12 @@ class MediaCommandController extends CommandController
      * @var AssetRepository
      */
     protected $assetRepository;
+
+    /**
+     * @Flow\Inject
+     * @var AssetServiceInterface
+     */
+    protected $assetService;
 
     /**
      * @Flow\Inject
@@ -116,7 +123,7 @@ class MediaCommandController extends CommandController
                 if ($simulate) {
                     $this->outputLine('Simulate: Adding new image "%s" (%sx%s px)', array($image->getResource()->getFilename(), $image->getWidth(), $image->getHeight()));
                 } else {
-                    $this->assetRepository->add($image);
+                    $this->assetService->add($image);
                     $this->outputLine('Adding new image "%s" (%sx%s px)', array($image->getResource()->getFilename(), $image->getWidth(), $image->getHeight()));
                 }
             }

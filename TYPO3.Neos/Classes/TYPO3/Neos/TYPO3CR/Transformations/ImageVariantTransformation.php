@@ -13,6 +13,7 @@ namespace TYPO3\Neos\TYPO3CR\Transformations;
 
 use Doctrine\Common\Persistence\ObjectManager;
 use TYPO3\Flow\Annotations as Flow;
+use TYPO3\Media\Domain\Service\AssetServiceInterface;
 use TYPO3\TYPO3CR\Domain\Model\NodeData;
 use TYPO3\TYPO3CR\Migration\Transformations\AbstractTransformation;
 
@@ -26,6 +27,12 @@ class ImageVariantTransformation extends AbstractTransformation
      * @var \TYPO3\Media\Domain\Repository\AssetRepository
      */
     protected $assetRepository;
+
+    /**
+     * @Flow\Inject
+     * @var AssetServiceInterface
+     */
+    protected $assetService;
 
     /**
      * @Flow\Inject
@@ -114,7 +121,7 @@ class ImageVariantTransformation extends AbstractTransformation
                                 $newImageVariant->addAdjustment($adjustment);
                             }
                             $originalAsset->addVariant($newImageVariant);
-                            $this->assetRepository->update($originalAsset);
+                            $this->assetService->update($originalAsset);
                             $nodeProperties[$propertyName] = $this->persistenceManager->getIdentifierByObject($newImageVariant);
                         }
                     }

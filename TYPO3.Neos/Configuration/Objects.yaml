@@ -30,6 +30,9 @@ TYPO3\Neos\Aspects\TypoScriptCachingAspect:
 'TYPO3\TYPO3CR\Domain\Service\NodeServiceInterface':
   className: TYPO3\Neos\TYPO3CR\NeosNodeService
 
+TYPO3\Media\Domain\Service\AssetServiceInterface:
+  className: TYPO3\Neos\Domain\Service\AssetService
+
 # This interface extends the TYPO3\TYPO3CR\Domain\Service\NodeServiceInterface
 'TYPO3\Neos\TYPO3CR\NeosNodeServiceInterface':
   className: TYPO3\Neos\TYPO3CR\NeosNodeService
