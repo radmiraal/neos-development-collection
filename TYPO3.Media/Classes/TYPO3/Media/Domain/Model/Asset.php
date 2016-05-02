@@ -20,6 +20,7 @@ use TYPO3\Flow\Resource\Resource as FlowResource;
 use TYPO3\Flow\Resource\ResourceManager;
 use TYPO3\Flow\Utility\MediaTypes;
 use TYPO3\Media\Domain\Repository\AssetRepository;
+use TYPO3\Media\Domain\Service\AssetServiceInterface;
 use TYPO3\Media\Domain\Service\ThumbnailService;
 
 /**
@@ -55,6 +56,12 @@ class Asset implements AssetInterface
      * @var ThumbnailService
      */
     protected $thumbnailService;
+
+    /**
+     * @Flow\Inject
+     * @var AssetServiceInterface
+     */
+    protected $assetService;
 
     /**
      * @Flow\Inject
@@ -412,5 +419,25 @@ class Asset implements AssetInterface
      */
     protected function emitAssetCreated(AssetInterface $asset)
     {
+    }
+
+    /**
+     * Returns true if the asset is still in use.
+     *
+     * @return boolean
+     */
+    public function isInUse()
+    {
+        return $this->assetService->isInUse($this);
+    }
+
+    /**
+     * Returns the number of times the asset is in use.
+     *
+     * @return integer
+     */
+    public function getUsageCount()
+    {
+        return $this->assetService->getUsageCount($this);
     }
 }
