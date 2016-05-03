@@ -16,12 +16,15 @@ use TYPO3\Flow\Mvc\ActionRequest;
 use TYPO3\Flow\Mvc\Routing\UriBuilder;
 use TYPO3\Flow\Object\ObjectManagerInterface;
 use TYPO3\Flow\Persistence\RepositoryInterface;
+use TYPO3\Flow\Reflection\ReflectionService;
 use TYPO3\Flow\Resource\ResourceManager;
+use TYPO3\Flow\Utility\Arrays;
 use TYPO3\Media\Domain\Model\AssetInterface;
 use TYPO3\Media\Domain\Model\ImageInterface;
 use TYPO3\Media\Domain\Model\Thumbnail;
 use TYPO3\Media\Domain\Model\ThumbnailConfiguration;
 use TYPO3\Media\Domain\Repository\AssetRepository;
+use TYPO3\Media\Domain\Strategy\AssetUsageStrategyInterface;
 use TYPO3\Media\Exception\AssetServiceException;
 
 /**
@@ -55,6 +58,17 @@ class AssetService implements AssetServiceInterface
     protected $objectManager;
 
     /**
+     * @Flow\Inject
+     * @var ReflectionService
+     */
+    protected $reflectionService;
+
+    /**
+     * @var array
+     */
+    protected $usageStrategies;
+
+    /**
      * Returns the repository for an asset
      *
      * @param AssetInterface $asset
@@ -72,6 +86,26 @@ class AssetService implements AssetServiceInterface
     }
 
     /**
+     * Returns all registered asset usage strategies
+     *
+     * @return array<\TYPO3\Media\Domain\Strategy\AssetUsageStrategyInterface>
+     * @throws \TYPO3\Flow\Object\Exception\UnknownObjectException
+     */
+    protected function getUsageStrategies()
+    {
+        if (is_array($this->usageStrategies)) {
+            return $this->usageStrategies;
+        }
+
+        $assetUsageStrategieImplementations = $this->reflectionService->getAllImplementationClassNamesForInterface('TYPO3\Media\Domain\Strategy\AssetUsageStrategyInterface');
+        foreach ($assetUsageStrategieImplementations as $assetUsageStrategieImplementationClassName) {
+            $this->usageStrategies[] = $this->objectManager->get($assetUsageStrategieImplementationClassName);
+        }
+
+        return $this->usageStrategies;
+    }
+
+    /**
      * Add an asset object.
      *
      * @param AssetInterface $asset
@@ -81,6 +115,7 @@ class AssetService implements AssetServiceInterface
     {
         $this->getRepository($asset)->add($asset);
     }
+
 
     /**
      * Update an asset object.
@@ -105,6 +140,56 @@ class AssetService implements AssetServiceInterface
     }
 
     /**
+     * Returns an array of asset usage references.
+     *
+     * @param AssetInterface $asset
+     * @return array<\TYPO3\Media\Domain\Model\Dto\UsageReference>
+     */
+    public function getUsageReferences(AssetInterface $asset)
+    {
+        $usages = [];
+        foreach ($this->getUsageStrategies() as $strategy) {
+            $usages = Arrays::arrayMergeRecursiveOverrule($usages, $strategy->getUsageReferences($asset));
+        }
+
+        return $usages;
+    }
+
+    /**
+     * Returns the total count of times an asset is used.
+     *
+     * @param AssetInterface $asset
+     * @return integer
+     */
+    public function getUsageCount(AssetInterface $asset)
+    {
+        $usageCount = 0;
+        foreach ($this->getUsageStrategies() as $strategy) {
+            $usageCount += $strategy->getUsageCount($asset);
+        }
+
+        return $usageCount;
+    }
+
+    /**
+     * Returns true if the asset is used.
+     *
+     * @param AssetInterface $asset
+     * @return boolean
+     */
+    public function isInUse(AssetInterface $asset)
+    {
+        /** @var AssetUsageStrategyInterface $strategy */
+        foreach ($this->getUsageStrategies() as $strategy) {
+            if ($strategy->isInUse($asset) === true) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Calculates the dimensions of the thumbnail to be generated and returns the thumbnail URI.
      * In case of Images this is a thumbnail of the image, in case of other assets an icon representation.
      *
@@ -116,7 +201,7 @@ class AssetService implements AssetServiceInterface
      */
     public function getThumbnailUriAndSizeForAsset(AssetInterface $asset, ThumbnailConfiguration $configuration, ActionRequest $request = null)
     {
-        $thumbnailImage =  $this->thumbnailService->getThumbnail($asset, $configuration);
+        $thumbnailImage = $this->thumbnailService->getThumbnail($asset, $configuration);
         if (!$thumbnailImage instanceof ImageInterface) {
             return null;
         }
